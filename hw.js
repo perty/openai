@@ -24,6 +24,10 @@ const chatWithGPT = async (messages = []) => {
     console.log(`GPT: ${gptResponse}`);
 
     rl.question("You: ", (userInput) => {
+        if (userInput.toLowerCase() === "exit") {
+            rl.close();
+            return;
+        }
         messages.push({ role: "user", content: userInput });
         chatWithGPT(messages);
     });
