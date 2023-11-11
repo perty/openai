@@ -187,6 +187,7 @@ const chatWithGPT = async () => {
 
                 messages.push({
                         role: "assistant",
+                        content: null,
                         tool_calls: [
                             {
                                 id: toolCallId,
