@@ -37,16 +37,21 @@ const chatWithGPT = async (pdfText) => {
 
         messages.push({role: "user", content: userInput});
 
-        const response = await openai.chat.completions.create({
+        const completion = await openai.chat.completions.create({
             model: "gpt-4-1106-preview",
-            //model: "gpt-3.5-turbo-1106",
             messages: messages,
             temperature: 0.5,
+            stream : true
         });
 
-        const gptResponse = response.choices[0].message.content;
-        console.log(`GPT: ${gptResponse}`);
-        messages.push({role: "assistant" , content: gptResponse})
+        let response = "";
+        for await (const chunk of completion) {
+            if (("content" in chunk.choices[0].delta)) {
+                response += chunk.choices[0].delta.content;
+                process.stdout.write(chunk.choices[0].delta.content);
+            }
+        }
+        messages.push({role: "assistant" , content: response});
     }
 };
 
