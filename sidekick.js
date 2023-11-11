@@ -41,7 +41,7 @@ const chatWithGPT = async (pdfText) => {
             model: "gpt-4-1106-preview",
             messages: messages,
             temperature: 0.5,
-            stream : true
+            stream: true
         });
 
         let response = "";
@@ -51,7 +51,7 @@ const chatWithGPT = async (pdfText) => {
                 process.stdout.write(chunk.choices[0].delta.content);
             }
         }
-        messages.push({role: "assistant" , content: response});
+        messages.push({role: "assistant", content: response});
     }
 };
 
@@ -63,7 +63,7 @@ const readPdfAndChat = async (pdfPath) => {
     await chatWithGPT(pdfData.text);
 };
 
-readPdfAndChat('utbmat.pdf'); // Ersätt med sökvägen till din PDF
+readPdfAndChat('utbmat.pdf');
 
 rl.on("close", () => {
     console.log("Goodbye!");
