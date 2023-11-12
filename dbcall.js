@@ -27,7 +27,7 @@ let db = new sqlite3.Database('data/Chinook.db', sqlite3.OPEN_READWRITE, (err) =
     if (err) {
         console.error(err.message);
     } else {
-        console.log('Connected to the Chinook database.');
+        process.stdout.write('Connected to the Chinook database.\n');
     }
 });
 
@@ -107,6 +107,7 @@ const tools = [
 ]
 
 function executeQuery(query) {
+    process.stdout.write(`Query: ${query}\n`);
     return new Promise((resolve, reject) => {
         let result = "";
         db.serialize(() => {
@@ -117,7 +118,7 @@ function executeQuery(query) {
                 } else {
                     result += JSON.stringify(row) + "\n"; // Convert row object to string
                 }
-            }, (err, count) => {
+            }, (err, _count) => {
                 if (err) {
                     reject(err);
                 } else {
@@ -135,7 +136,7 @@ const chatWithGPT = async () => {
             content: systemPrompt
         }];
         while (true) {
-            const userInput = await new Promise(resolve => rl.question("\nYou: ", resolve));
+            const userInput = await new Promise(resolve => rl.question("You: ", resolve));
 
             if (userInput.toLowerCase() === "exit") {
                 rl.close();
@@ -181,13 +182,14 @@ const chatWithGPT = async () => {
                 const functionResponse = await executeQuery(fn.query).then(result => {
                     return result;
                 }).catch(error => {
-                    return error;
+                    return JSON.stringify(error);
                 });
                 process.stdout.write(functionResponse);
+                process.stdout.write("\n");
 
                 messages.push({
                         role: "assistant",
-                        content: null,
+                        content: "",
                         tool_calls: [
                             {
                                 id: toolCallId,
