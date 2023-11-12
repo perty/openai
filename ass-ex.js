@@ -1,5 +1,4 @@
 const OpenAI = require("openai").default;
-const readline = require("readline");
 require('dotenv').config();
 
 const openai = new OpenAI({
@@ -43,7 +42,7 @@ async function main() {
         aThread.id
     );
 
-    for (d of messages.body.data.sort((a,b) => a.created_at - b.created_at)) {
+    for (d of messages.data.sort((a,b) => a.created_at - b.created_at)) {
         for (t of d.content) {
             console.log(t.text.value);
         }
