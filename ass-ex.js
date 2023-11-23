@@ -42,8 +42,8 @@ async function main() {
         aThread.id
     );
 
-    for (d of messages.data.sort((a,b) => a.created_at - b.created_at)) {
-        for (t of d.content) {
+    for (const d of messages.data.sort((a,b) => a.created_at - b.created_at)) {
+        for (const t of d.content) {
             console.log(t.text.value);
         }
     }
