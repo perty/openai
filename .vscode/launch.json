@@ -6,6 +6,16 @@
     "configurations": [
         {
             "type": "node",
+            "name": "HW",
+            "request": "launch",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "${workspaceFolder}\\hw.js",
+            "console": "integratedTerminal"
+        },
+        {
+            "type": "node",
             "request": "launch",
             "name": "Ass-Ex",
             "skipFiles": [
