@@ -153,7 +153,7 @@ async function getSchema(conn) {
             messages.push({role: "user", content: userInput});
 
             const completion = await openai.chat.completions.create({
-                model: "gpt-4-1106-preview",
+                model: "gpt-4o",
                 tools: tools,
                 messages: messages,
                 temperature: 0.5,
