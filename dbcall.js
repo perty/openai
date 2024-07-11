@@ -17,8 +17,9 @@ rl.on("close", () => {
 });
 
 const systemPrompt = `
-    Answer user questions by generating SQL queries against the 
-    Chinook Music Database.
+    You are an assistant that helps users by generating SQL queries against the Chinook Music Database. 
+    Users will ask questions in natural language, and you will convert those questions into SQL queries 
+    to retrieve the required information from the database. Provide the results in a clear and human-readable format.
     `;
 
 const sqlite3 = require('sqlite3').verbose();
@@ -76,61 +77,67 @@ async function getSchema(conn) {
     return schema;
 }
 
-const databaseSchemaString = getSchema(db);
+(async () => {
+    const databaseSchemaString = await getSchema(db);
 
-const tools = [
-    {
-        type: "function",
-        function: {
-            name: "ask_database",
-            description: `
-                Use this function to answer user questions about music.
-                Input should be a fully formed SQL query.,
-                `,
-            parameters: {
-                type: "object",
-                properties: {
-                    query: {
-                        type: "string",
-                        description: `
-                        SQL query extracting info to answer the user's question.
-                        SQL should be written using this database schema:
-                        ${databaseSchemaString}
-                        The query should be returned in plain text, not in JSON.
-                        `,
-                    }
-                },
-                required: ["query"],
+    const tools = [
+        {
+            type: "function",
+            function: {
+                name: "ask_database",
+                description: `
+                    Use this function to answer user questions about music.
+                    Input should be a fully formed SQL query.
+                    `,
+                parameters: {
+                    type: "object",
+                    properties: {
+                        query: {
+                            type: "string",
+                            description: `
+                            SQL query extracting info to answer the user's question.
+                            SQL should be written using this database schema:
+                            ${databaseSchemaString}
+                            The query should be returned in plain text, not in JSON.
+                            `,
+                        }
+                    },
+                    required: ["query"],
+                }
             }
         }
-    }
-]
+    ];
 
-function executeQuery(query) {
-    process.stdout.write(`Query: ${query}\n`);
-    return new Promise((resolve, reject) => {
-        let result = "";
-        db.serialize(() => {
-            db.each(query, (err, row) => {
-                if (err) {
-                    console.error(err.message);
-                    reject(err.message);
-                } else {
-                    result += JSON.stringify(row) + "\n"; // Convert row object to string
-                }
-            }, (err, _count) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve(result);
-                }
+    function formatResult(rows) {
+        if (rows.length === 0) return "No results found.";
+        const keys = Object.keys(rows[0]);
+        return rows.map(row => keys.map(key => `${key}: ${row[key]}`).join(', ')).join('\n');
+    }
+
+    function executeQuery(query) {
+        process.stdout.write(`Query: ${query}\n`);
+        return new Promise((resolve, reject) => {
+            let rows = [];
+            db.serialize(() => {
+                db.each(query, (err, row) => {
+                    if (err) {
+                        console.error(err.message);
+                        reject(err.message);
+                    } else {
+                        rows.push(row);
+                    }
+                }, (err, _count) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(rows);
+                    }
+                });
             });
         });
-    });
-}
+    }
 
-
-const chatWithGPT = async () => {
+    const chatWithGPT = async () => {
         const messages = [{
             role: "system",
             content: systemPrompt
@@ -161,7 +168,7 @@ const chatWithGPT = async () => {
                 if (chunk.choices[0].delta.tool_calls) {
                     for (const toolCall of chunk.choices[0].delta.tool_calls) {
                         if (toolCall.id) {
-                            toolCallId = toolCall.id
+                            toolCallId = toolCall.id;
                         }
                         if (toolCall.function.name) {
                             functionName += toolCall.function.name;
@@ -175,17 +182,22 @@ const chatWithGPT = async () => {
                     process.stdout.write(chunk.choices[0].delta.content);
                 }
             }
+
+            // Lägg till ny rad efter hela svaret
+            if (response.length > 0) {
+                process.stdout.write("\n");
+            }
+
             if (functionName.length < 1) {
                 messages.push({role: "assistant", content: response});
             } else {
                 const fn = JSON.parse(functionArgs);
-                const functionResponse = await executeQuery(fn.query).then(result => {
-                    return result;
+                const functionResponse = await executeQuery(fn.query).then(rows => {
+                    return formatResult(rows);
                 }).catch(error => {
-                    return JSON.stringify(error);
+                    return `Error: ${error}`;
                 });
-                process.stdout.write(functionResponse);
-                process.stdout.write("\n");
+                process.stdout.write(functionResponse + "\n");
 
                 messages.push({
                         role: "assistant",
@@ -193,7 +205,7 @@ const chatWithGPT = async () => {
                         tool_calls: [
                             {
                                 id: toolCallId,
-                                type : "function",
+                                type: "function",
                                 function: {
                                     name: functionName,
                                     arguments: functionArgs
@@ -209,9 +221,8 @@ const chatWithGPT = async () => {
                     content: functionResponse,
                 });
             }
-
         }
-    }
-;
+    };
 
-chatWithGPT();
+    chatWithGPT();
+})();
